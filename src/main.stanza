@@ -1,0 +1,101 @@
+defpackage svg-to-stanza/main:
+  import core
+  import collections
+  import geom/svg
+  import geom/box
+  import geom/vec
+
+defn normalize (paths: Tuple<Tuple<V2f>>, span: Double) -> Tuple<Tuple<V2f>> :
+  val c = to-tuple $ cat-all(to-tuple $ paths)
+  val x-max = maximum $ seq(x c)
+  val x-min = minimum $ seq(x c)
+  val y-max = maximum $ seq(y c)
+  val y-min = minimum $ seq(y c)
+  val x-span = x-max - x-min
+  val y-span = y-max - y-min
+  val ratio = to-float(span) / max(x-span y-span)
+  val x-mid = x-min + 0.5f * x-span
+  val y-mid = y-min + 0.5f * y-span
+  to-tuple $ for path in paths seq :
+    to-tuple $ for elem in path seq :
+      V2f(ratio * (x(elem) - x-mid), ratio * (y-mid - y(elem))) ; flip y is needed
+
+defn to-stanza-string (paths: Tuple<Tuple<V2f>>, name: String, stroke-width:Double) -> String :
+  val strs = Vector<String>()
+  add(strs, to-string $ \<B>#use-added-syntax(jitx)
+defpackage svg-%_ :
+  import core
+  import jitx
+  import jitx/commands
+;
+; This is jitx generated code by svg-to-stanza
+;
+; In the host code, add the following line to imports
+; import svg-%_
+;
+; Inside your module, add the following two lines of code:
+; inst your-instance : svg-%_-component
+; place(your-instance) at loc(<somewhere>) on Top
+;
+<B> % [name name name])
+  add(strs, "pcb-landpattern svg-lp :")
+  for path in paths do :
+    add(strs, to-string $ "  layer(Silkscreen(\"F-SilkS\", Top)) = Line(%_, [" % [stroke-width])
+    for elem in path do : 
+      add(strs, to-string $ "    Point(%_, %_)" % [x(elem) y(elem)])
+    add(strs, "    ])")       
+
+  add(strs, to-string $ \<B>
+pcb-symbol generic-symbol :
+  layer("foreground") = Rectangle(5.08, 5.08, loc(0.0, 0.0))
+  layer("foreground") = Text(">VALUE", 0.762, SW, loc(-2.54, 2.84))
+  layer("foreground") = Text(">REF", 0.762, SW, loc(-2.54, 3.902))
+
+public pcb-component svg-%_-component :
+  mpn          = "0603"
+  manufacturer = "JITX"
+  description  = "SVG drawing"
+  assign-landpattern(svg-lp)
+
+  val sym = generic-symbol
+  symbol = sym()
+  reference-prefix = "%_"
+<B> % [name name])
+  ; strs is ready
+  string-join(strs, '\n')
+
+defn to-double! (s:String, d:Double) -> Double :
+  match(to-double(s)) :
+    (dou:Double) : dou
+    (_) : d
+
+defn svg-to-stanza (name:String, span:Double, stroke-width:Double, resolution:Double) :
+  println("svg-to-stanza")
+  val input-path = append(name, ".svg")
+  if file-exists?(input-path) :
+    println("reading from %_..." % [input-path])
+    val svgs = read-svg(input-path, "mm", to-float(resolution))
+    val paths = normalize{_ span} $ to-tuple $ for svg in svgs seq:
+      to-tuple $ sample(svg to-float(resolution))
+    val outstr = to-stanza-string(paths, name, stroke-width)
+    val output-path = append(name, ".stanza")
+    with-output-file(FileOutputStream(output-path), {println(outstr)})
+    println("converted to %_" % [output-path])
+
+defn main () -> False:
+  val args = command-line-arguments()
+
+  if length(args) <= 1 :
+    println(\<B>Generate .stanza file for jitpcb from .svg file
+    Usage: svg-to-stanza <name-without-file-extension> [span-in-mm] [stroke-width-in-mm] [resolution-in-mm]
+           the default span is 10mm, stroke-width is 0.1mm, resolution is 0.01mm<B>)
+  else :
+    ; valid input
+    val name = args[1]
+    val span = to-double!(args[2], 10.0) when length(args) > 2 else 10.0  ; default to 10mm
+    val stroke-width = to-double!(args[3], 0.1) when length(args) > 3 else 0.1  ; default to 0.1mm
+    val resolution = to-double!(args[4], 0.01) when length(args) > 4 else 0.01; default resolution
+    svg-to-stanza(name, span, stroke-width, resolution)
+  false
+
+main()

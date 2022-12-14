@@ -1,0 +1,5 @@
+include "src/stanza.proj"
+
+build main:
+  inputs: svg-to-stanza/main
+  o: "svg-to-stanza"

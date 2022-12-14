@@ -1,0 +1,4 @@
+name = "svg-to-stanza"
+version = "0.1.0"
+[dependencies]
+stanza-geom = "jackbackrack/stanza-geom|0.1.6"
