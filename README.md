@@ -4,6 +4,8 @@ This is built by poet. Please install poet from https://github.com/StanzaOrg/poe
 
 Usage: `svg-to-stanza <name-without-file-extension> [span-in-mm] [stroke-width-in-mm] [ressolution-in-mm]`
 
+For example: `svg-to-stanza mickey 100 0.1 0.1` if you have a `mickey.svg` available with the placed along with `svg-to-stanza` executable in the same directory. You want to largest side to be 10cm long. The stroke-width (pen thickness) be 0.1mm and resolution be 0.1mm (means curves with be broken down into 0.1mm long lines at most)
+
 If no span, stroke-width or resolution is given, they are default to 10mm, 0.1mm, and 0.01mm respectively.
 
 1. clone this repo
